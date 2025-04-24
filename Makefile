@@ -24,7 +24,7 @@ run/api:
 	go run ./cmd/api -db-dsn=${RETASK_DB_DSN}
 
 ## db/psql: connect to the database using psql
-.PHONY: db/psql
+.PHONY: db/sqlite
 db/sql:
 	sqlite3 ${RETASK_DB_DSN}
 
