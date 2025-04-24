@@ -20,7 +20,7 @@ type dpState struct {
 	lastPackUsed int
 }
 
-// CalculatePacks determines the optimal pack combination for a given order amount.
+// CalculatePacks determines the optimal pack combination for a given order amount using dynamic programming.
 // It follows the rules:
 // 1. Only whole packs.
 // 2. Minimize total items sent (must be >= orderAmount).
@@ -45,8 +45,6 @@ func (m *CalculatorModel) CalculatePacks(orderAmount int) (map[int]int, error) {
 		return nil, fmt.Errorf("pack sizes from db could not be found, did you forget seeding?")
 	}
 
-	// --- Dynamic Programming Approach ---
-
 	// Determine the maximum amount to calculate DP for.
 	// We need to check amounts >= orderAmount. The minimum possible total items
 	// won't exceed orderAmount + largestPackSize - 1.
@@ -58,7 +56,8 @@ func (m *CalculatorModel) CalculatePacks(orderAmount int) (map[int]int, error) {
 		largestPackSize = packSizes[len(packSizes)-1]
 	}
 	// Prevent potential overflow if orderAmount is huge, though unlikely with typical inputs.
-	// Cap maxAmount reasonably if necessary, or use math/big. For this challenge, int should suffice.
+	// Cap maxAmount reasonably if necessary, or use math/big.
+	// For this challenge, int should suffice.
 	maxAmount := orderAmount + largestPackSize
 
 	// Initialize DP table. dp[i] stores the best way to sum exactly to i items.
@@ -155,7 +154,6 @@ func (m *CalculatorModel) GetAllPacks() ([]int, error) {
 	}
 
 	return packSizes, nil
-
 }
 
 func (m *CalculatorModel) InsertPack(amount int) error {
