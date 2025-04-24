@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Pack Calculator</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .card {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        .result {
+            margin-top: 20px;
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .pack-size {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .pack-size input {
+            flex: 1;
+            margin-right: 10px;
+            margin-bottom: 0;
+        }
+
+        .remove-pack {
+            background: #e74c3c;
+        }
+
+        .remove-pack:hover {
+            background: #c0392b;
+        }
+
+        #add-pack-btn {
+            background: #2ecc71;
+            margin-bottom: 15px;
+        }
+
+        #add-pack-btn:hover {
+            background: #27ae60;
+        }
+
+        .summary {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<h1>Pack Calculator</h1>
+
+<div class="card">
+    <h2>Pack Sizes</h2>
+    <div id="pack-sizes"></div>
+    <div>
+        <input type="number" id="pack-size" class="pack-size-input" value="" placeholder="Type pack size">
+    </div>
+    <button id="save-packs-btn">Add</button>
+</div>
+
+<div class="card">
+    <h2>Calculate Optimal Packing</h2>
+    <form id="calculate-form">
+        <label for="order-quantity">Items Ordered:</label>
+        <input type="number" id="order-quantity" min="1" required/>
+        <button type="submit">Calculate</button>
+    </form>
+
+    <div id="result" class="result">
+        <h3>Results</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Pack Size</th>
+                <th>Quantity</th>
+                <th>Total Items</th>
+            </tr>
+            </thead>
+            <tbody id="result-table"></tbody>
+        </table>
+        <div class="summary">
+            <p>Order Quantity: <span id="summary-quantity"></span></p>
+            <p>Total Items Shipped: <span id="summary-items"></span></p>
+            <p>Total Packs: <span id="summary-packs"></span></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        loadPackSizes();
+
+        document
+            .getElementById("calculate-form")
+            .addEventListener("submit", function (e) {
+                e.preventDefault();
+                calculatePacks();
+            });
+
+        document
+            .getElementById("save-packs-btn")
+            .addEventListener("click", function () {
+                savePackSizes();
+            });
+    });
+
+    function loadPackSizes() {
+        fetch("/v1/pack/size")
+            .then((response) => response.json())
+            .then((data) => {
+                const packSizesContainer =
+                    document.getElementById("pack-sizes");
+                packSizesContainer.innerHTML = "";
+
+                if (data.length === 0) {
+                    alert("No pack size found. Did you forget to run migration and populate pack_size table? 🙂")
+                } else {
+                    data.sizes.forEach((size) => {
+                        addPackSizeField(size);
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error("Error loading pack sizes:", error);
+            });
+    }
+
+    function addPackSizeField(value = "") {
+        const packSizesContainer =
+            document.getElementById("pack-sizes");
+        const div = document.createElement("div");
+        div.className = "pack-size";
+
+        div.innerHTML = `
+                <input type="number" class="pack-size-input" value="${value}" disabled>
+                <button type="button" class="remove-pack" data-value="${value}">Remove</button>
+            `;
+
+        div.querySelector(".remove-pack").addEventListener(
+            "click",
+            function (e) {
+                // packSizesContainer.removeChild(div);
+                e.preventDefault()
+                const value = e.target.getAttribute("data-value");
+                fetch(`/v1/pack/size/${value}`, {
+                    method: "DELETE",
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        loadPackSizes();
+                        alert(`${value} removed successfully`)
+                    })
+                    .catch((error) => {
+                        console.error("Error removing pack:", error);
+                        alert("Error removing pack");
+                    });
+            },
+        );
+
+        packSizesContainer.appendChild(div);
+    }
+
+    function savePackSizes() {
+        const sizeInput = document.getElementById("pack-size");
+        const size = parseInt(sizeInput.value, 10);
+
+        if (!size || size <= 0) {
+            alert("Please enter a valid pack size");
+            return;
+        }
+
+        fetch("/v1/pack/size", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({size: size}),
+        })
+            .then((response) => {
+                if (response.ok) {
+                    alert("Pack size saved successfully");
+                    loadPackSizes();
+                    sizeInput.value = ""
+                } else {
+                    alert("Failed to save pack size");
+                }
+            })
+            .catch((error) => {
+                console.error("Error saving pack size:", error);
+                alert("Error saving pack size");
+            });
+    }
+
+    function calculatePacks() {
+        const quantity =
+            document.getElementById("order-quantity").value;
+
+        if (!quantity || quantity < 1) {
+            alert("Please enter a valid quantity");
+            return;
+        }
+
+        fetch(`/v1/pack/calculate/${quantity}`)
+            .then((response) => response.json())
+            .then((data) => {
+                displayResults(data, quantity);
+            })
+            .catch((error) => {
+                console.error("Error calculating packs:", error);
+                alert("Error calculating packs");
+            });
+    }
+
+    function displayResults(data, quantity) {
+        let totalItems = 0;
+        let totalPacks = 0;
+
+        const tableBody = document.getElementById("result-table");
+        tableBody.innerHTML = "";
+        for (const [key, value] of Object.entries(data.packages)) {
+            const packSize = Number(key);
+            const total = packSize * value;
+
+            const row = document.createElement("tr");
+            totalItems += total
+            totalPacks += value
+
+            row.innerHTML = `
+                         <td>${packSize}</td>
+                         <td>${value}</td>
+                         <td>${total}</td>
+                         `
+            tableBody.appendChild(row);
+        }
+
+        document.getElementById("result").style.display = "block";
+        document.getElementById("summary-quantity").textContent = quantity;
+        document.getElementById("summary-items").textContent = totalItems;
+        document.getElementById("summary-packs").textContent = totalPacks;
+    }
+</script>
+</body>
+</html>

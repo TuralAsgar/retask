@@ -1,0 +1,5 @@
+.idea
+bin/
+remote
+.envrc
+.DS_Store

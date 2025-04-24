@@ -1,0 +1,8 @@
+version: "3"
+
+services:
+  pack-calculator:
+    build: .
+    ports:
+      - "8080:8080"
+    restart: always
