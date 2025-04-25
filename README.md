@@ -1,4 +1,4 @@
-# Pack Calculator
+# Pack Optimizer
 
 ## Overview
 
