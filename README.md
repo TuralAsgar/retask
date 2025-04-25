@@ -9,7 +9,7 @@ number of packs used.
 ## Demo
 
 A live demo is available at [retask.tural.pro](https://retask.tural.pro)  
-Watch video demo on [YouTube](https://www.youtube.com/watch?v=qrGtGzoaioM)
+Watch video demo on [YouTube](https://youtu.be/Cqc6Phnq0yQ)
 
 ![assignment](assignment.png)
 
